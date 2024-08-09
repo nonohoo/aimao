@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爱猫聊天助手</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .chat-container {
+            width: 50%;
+            max-width: 600px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            height: 80vh;
+            overflow: hidden;
+        }
+        .chat-header {
+            background-color: #4caf50;
+            color: white;
+            padding: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .chat-header h2 {
+            margin: 0;
+            padding-left: 10px;
+            font-size: 18px;
+        }
+        .chat-header button {
+            background-color: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-right: 10px;
+        }
+        .chat-header button:hover {
+            background-color: #e68900;
+        }
+        .chat-settings {
+            padding: 20px;
+            background: #eee;
+            border-bottom: 1px solid #ccc;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-settings label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .chat-settings input,
+        .chat-settings select,
+        .chat-settings button {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .chat-settings button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .chat-settings button:hover {
+            background-color: #45a049;
+        }
+        .chat-box {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #fafafa;
+        }
+        .chat-form {
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background: #eee;
+            border-top: 1px solid #ccc;
+        }
+        .chat-form label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .chat-form input,
+        .chat-form button {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .chat-form button {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        .chat-form button:hover {
+            background-color: #45a049;
+        }
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+        }
+        .message.user {
+            justify-content: flex-start;
+        }
+        .message.assistant {
+            justify-content: flex-end;
+        }
+        .message p {
+            display: inline-block;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+            cursor: pointer;
+            text-align: left; /* 确保文字左对齐 */
+        }
+        .message.user p {
+            background-color: #e1f5fe;
+            color: #0277bd;
+        }
+        .message.assistant p {
+            background-color: #dcedc8;
+            color: #558b2f;
+        }
+        #custom-model-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>爱猫聊天助手</h2>
+            <button id="try-api-button">中转api1比1.5 点击试用</button>
+        </div>
+        <div class="chat-settings">
+            <label for="api-url">接口地址:</label>
+            <input type="text" id="api-url" placeholder="请输入接口地址" value="https://api.gptai.cc/v1/chat/completions">
+
+            <label for="api-key-input">API密钥:</label>
+            <input type="text" id="api-key-input" placeholder="请输入API密钥" required>
+
+            <label for="model-select">选择模型:</label>
+            <select id="model-select">
+                <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                <option value="gpt-4">GPT-4</option>
+                <option value="custom">自定义</option>
+            </select>
+
+            <input type="text" id="custom-model-input" placeholder="输入自定义模型名称">
+
+            <button type="button" id="confirm-button">确定</button>
+        </div>
+        <div class="chat-box" id="chat-box">
+            <!-- 聊天记录将显示在这里 -->
+        </div>
+        <form id="chat-form" class="chat-form">
+            <label for="message-input">输入消息:</label>
+            <input type="text" id="message-input" placeholder="请输入消息" required>
+            <button type="submit">发送</button>
+        </form>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const apiUrlInput = document.getElementById('api-url');
+        const modelSelect = document.getElementById('model-select');
+        const customModelInput = document.getElementById('custom-model-input');
+        const confirmButton = document.getElementById('confirm-button');
+        const tryApiButton = document.getElementById('try-api-button');
+
+        let apiKey = apiKeyInput.value.trim();
+        let apiUrl = apiUrlInput.value.trim();
+        let model = modelSelect.value;
+
+        modelSelect.addEventListener('change', () => {
+            if (modelSelect.value === 'custom') {
+                customModelInput.style.display = 'block';
+            } else {
+                customModelInput.style.display = 'none';
+                customModelInput.value = ''; // 清除之前的自定义输入
+            }
+        });
+
+        confirmButton.addEventListener('click', () => {
+            apiKey = apiKeyInput.value.trim();
+            apiUrl = apiUrlInput.value.trim();
+            if (modelSelect.value === 'custom') {
+                model = customModelInput.value.trim();
+            } else {
+                model = modelSelect.value;
+            }
+
+            if (!apiKey) {
+                alert('请输入API密钥。');
+                return;
+            }
+
+            if (!apiUrl) {
+                alert('请输入接口地址。');
+                return;
+            }
+
+            if (!model) {
+                alert('请输入模型名称。');
+                return;
+            }
+
+            alert('API密钥、接口地址和模型已确认。');
+        });
+
+tryApiButton.addEventListener('click', () => {
+    window.open("https://api.gptai.cc/", "_blank");
+});
+
+
+        chatForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const userMessage = messageInput.value.trim();
+
+            if (!apiKey || !apiUrl || !model) {
+                alert('请先确认API密钥、接口地址和模型。');
+                return;
+            }
+
+            displayMessage(userMessage, 'user');
+            messageInput.value = '';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            { role: "system", content: "你是一个乐于助人的助手。" },
+                            { role: "user", content: userMessage }
+                        ],
+                        stream: true  // 启用流式输出
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('请求失败');
+                }
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let done = false;
+
+                let buffer = '';  // 用于缓冲尚未处理的流数据
+
+                while (!done) {
+                    const { value, done: readerDone } = await reader.read();
+                    done = readerDone;
+                    buffer += decoder.decode(value, { stream: !readerDone });
+
+                    // 处理缓冲区中的完整行
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();  // 将最后一行保留在缓冲区中，可能是不完整的
+
+                    for (const line of lines) {
+                        if (line.trim() === '' || line.trim() === '[DONE]') continue;
+
+                        const parsedLine = line.replace(/^data: /, '');
+                        try {
+                            const json = JSON.parse(parsedLine);
+                            const content = json.choices[0].delta?.content || '';
+                            simulateStreamOutput(content, 'assistant');
+                        } catch (e) {
+                            console.error("解析流数据失败", e);
+                        }
+                    }
+                }
+            } catch (error) {
+                displayMessage('请求失败，请检查设置。', 'assistant');
+            }
+        });
+
+        function displayMessage(message, role) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', role);
+            const messageContent = document.createElement('p');
+            messageContent.textContent = message;
+            messageElement.appendChild(messageContent);
+            chatBox.appendChild(messageElement);
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            // 添加点击复制功能
+            messageContent.addEventListener('click', () => {
+                navigator.clipboard.writeText(messageContent.textContent)
+                    .then(() => alert('已复制到剪贴板'))
+                    .catch(err => console.error('复制失败', err));
+            });
+        }
+
+        function simulateStreamOutput(text, role) {
+            if (!chatBox.lastChild || chatBox.lastChild.className !== `message ${role}`) {
+                displayMessage('', role);
+            }
+            chatBox.lastChild.querySelector('p').textContent += text;
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+    </script>
+</body>
+</html>
